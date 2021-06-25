@@ -17,6 +17,7 @@ class Account(object):
         return pytz.utc.localize(datetime.datetime.utcnow())
         # local_time = pytz.utc.localize(datetime.datetime.utcnow())
         # return local_time.astimezone()
+        # return 1
 
     def __init__(self, name: str, op_bal: int = 0.0):
         cursor = db.execute("SELECT name, balance FROM accounts WHERE(name = ?)",(name,))
@@ -69,10 +70,16 @@ class Account(object):
     def _save_up(self, amount):
         new_bal = self._bal+amount
         dep_time = Account._cur_time()
-        db.execute("UPDATE accounts SET balance = ? WHERE (name = ?)",(new_bal, self.name))
-        db.execute("INSERT INTO history VALUES(?,?,?)",(dep_time, self.name, amount))
-        db.commit()
-        self._bal = new_bal
+
+        try:
+            db.execute("UPDATE accounts SET balance = ? WHERE (name = ?)",(new_bal, self.name))
+            db.execute("INSERT INTO history VALUES(?,?,?)",(dep_time, self.name, amount))
+        except sqlite3.Error:
+            db.rollback()
+        else:
+            db.commit()
+            self._bal = new_bal
+
 
 
 if __name__ =="__main__":
